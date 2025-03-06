@@ -172,14 +172,18 @@ export class ResponseModule {
             index
           );
           const sources: Source[] = await getSourcesFromChunks(chunks);
-          if (!sources.length) {
-          return new Response(
-            JSON.stringify({
-              answer:
-                "I'm here to help with ECON 425! It looks like your question isn't related to the course. Try asking me something about financial economics!",
-            }),
-            { status: 200 }
+          if (sources.length === 0) {
+          queueIndicator({
+            controller,
+            status: "No relevant documents found",
+            icon: "error",
+          });
+
+          controller.enqueue(
+            `I'm here to answer your questions about ECON 425! It doesn't seem like your question is related to the course. Try asking me something about financial economics!`
           );
+          controller.close();
+          return;
         }
           queueIndicator({
             controller,
