@@ -173,18 +173,18 @@ export class ResponseModule {
           );
           const sources: Source[] = await getSourcesFromChunks(chunks);
           if (sources.length === 0) {
-          queueIndicator({
-            controller,
-            status: "No relevant documents found",
-            icon: "error",
-          });
+  queueIndicator({
+    controller,
+    status: "No relevant documents found",
+    icon: "error",
+  });
 
-          controller.enqueue(
-            `I'm here to answer your questions about ECON 425! It doesn't seem like your question is related to the course. Try asking me something about financial economics!`
-          );
-          controller.close();
-          return;
-        }
+  controller.enqueue(
+    "I'm here to answer your questions about ECON 425! It doesn't seem like your question is related to the course. Try asking me something about financial economics!"
+  );
+  controller.close();
+  return; // Important to stop here if no relevant documents
+}
           queueIndicator({
             controller,
             status: `Read over ${sources.length} documents`,
