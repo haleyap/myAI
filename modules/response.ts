@@ -138,28 +138,30 @@ export class ResponseModule {
   }
 
   static async respondToQuestion(
-  chat: Chat,
-  providers: AIProviders,
-  index: any
-): Promise<Response> {
-  /**
-   * Respond to the user when they send a QUESTION
-   */
-  const PROVIDER_NAME: ProviderName = QUESTION_RESPONSE_PROVIDER;
-  const MODEL_NAME: string = QUESTION_RESPONSE_MODEL;
+    chat: Chat,
+    providers: AIProviders,
+    index: any
+  ): Promise<Response> {
+    /**
+     * Respond to the user when they send a QUESTION
+     */
+    const PROVIDER_NAME: ProviderName = QUESTION_RESPONSE_PROVIDER;
+    const MODEL_NAME: string = QUESTION_RESPONSE_MODEL;
 
-  const stream = new ReadableStream({
-    async start(controller) {
-      queueIndicator({
-        controller,
-        status: "Figuring out what your answer looks like",
-        icon: "thinking",
-      });
+    const stream = new ReadableStream({
+      async start(controller) {
+        queueIndicator({
+          controller,
+          status: "Figuring out what your answer looks like",
+          icon: "thinking",
+        });
 
-      try {
-        // List of relevant keywords
-        const relevantKeywords = [
-           "finance", "economics", "stocks", "bonds", "investment", "ESG",
+        try {
+          // List of relevant keywords
+          const relevantKeywords = [
+            "finance", "economics", "stocks", "bonds", "investment", "ESG",
+            "portfolio", "risk", "market", "quantitative", "Fama-French",
+            "return", "capital", "analysis", "equity", "econometrics"
     "portfolio", "risk", "market", "quantitative", "Fama-French",
     "return", "capital", "analysis", "equity", "econometrics", "apt", 
     "roark", "chris", "425", "econ", "capm", "risk aversion", 
@@ -170,100 +172,101 @@ export class ResponseModule {
     "bond pricing", "bond yields", "term structure", "duration", 
     "macroeconomic analysis", "fundamental analysis", "dividend discount model", 
     "PE analysis", "project report", "final exam"
-        ];
+          ];
 
-        // Check if the user's message contains any relevant keywords
-        const userMessage = chat.messages.slice(-1)[0].content.toLowerCase();
-        const containsRelevantKeywords = relevantKeywords.some(keyword =>
-          userMessage.includes(keyword)
-        );
+          // Check if the user's message contains any relevant keywords
+          const userMessage = chat.messages.slice(-1)[0].content.toLowerCase();
+          const containsRelevantKeywords = relevantKeywords.some(keyword =>
+            userMessage.includes(keyword)
+          );
 
-        if (!containsRelevantKeywords) {
-          // If no relevant keywords are found, return the message asking for ECON 425-related questions
+          if (!containsRelevantKeywords) {
+            // If no relevant keywords are found, return the default message about ECON 425
+            queueAssistantResponse({
+              controller,
+              providers,
+              providerName: PROVIDER_NAME,
+              messages: [],
+              model_name: MODEL_NAME,
+              systemPrompt: "I'm here to help with ECON 425-related questions. Feel free to ask about topics related to finance, economics, investment, and more!",
+              citations: [],
+              error_message: "No relevant documents found.",
+              temperature: QUESTION_RESPONSE_TEMPERATURE,
+            });
+            return; // End the response here
+          }
+
+          // Proceed with generating a response if relevant keywords are found
+          const hypotheticalData: string = await generateHypotheticalData(
+            chat,
+            providers.openai
+          );
+          const { embedding }: { embedding: number[] } =
+            await embedHypotheticalData(hypotheticalData, providers.openai);
+          queueIndicator({
+            controller,
+            status: "Reading through documents",
+            icon: "searching",
+          });
+          const chunks: Chunk[] = await searchForChunksUsingEmbedding(
+            embedding,
+            index
+          );
+          const sources: Source[] = await getSourcesFromChunks(chunks);
+          queueIndicator({
+            controller,
+            status: `Read over ${sources.length} documents`,
+            icon: "documents",
+          });
+          const citations: Citation[] = await getCitationsFromChunks(chunks);
+          const contextFromSources = await getContextFromSources(sources);
+          const systemPrompt =
+            RESPOND_TO_QUESTION_SYSTEM_PROMPT(contextFromSources);
+          queueIndicator({
+            controller,
+            status: "Coming up with an answer",
+            icon: "thinking",
+          });
+          queueAssistantResponse({
+            controller,
+            providers,
+            providerName: PROVIDER_NAME,
+            messages: stripMessagesOfCitations(
+              chat.messages.slice(-HISTORY_CONTEXT_LENGTH)
+            ),
+            model_name: MODEL_NAME,
+            systemPrompt,
+            citations,
+            error_message: DEFAULT_RESPONSE_MESSAGE,
+            temperature: QUESTION_RESPONSE_TEMPERATURE,
+          });
+        } catch (error: any) {
+          console.error("Error in respondToQuestion:", error);
+          queueError({
+            controller,
+            error_message: error.message ?? DEFAULT_RESPONSE_MESSAGE,
+          });
           queueAssistantResponse({
             controller,
             providers,
             providerName: PROVIDER_NAME,
             messages: [],
             model_name: MODEL_NAME,
-            systemPrompt: "I didn't catch a relevant topic. Please ask something related to ECON 425. I'm here to help with questions about finance, economics, and more!",
+            systemPrompt: RESPOND_TO_QUESTION_BACKUP_SYSTEM_PROMPT(),
             citations: [],
-            error_message: "No relevant documents found.",
+            error_message: DEFAULT_RESPONSE_MESSAGE,
             temperature: QUESTION_RESPONSE_TEMPERATURE,
           });
-          return; // End the response here
         }
+      },
+    });
 
-        // Proceed with generating a response if relevant keywords are found
-        const hypotheticalData: string = await generateHypotheticalData(
-          chat,
-          providers.openai
-        );
-        const { embedding }: { embedding: number[] } =
-          await embedHypotheticalData(hypotheticalData, providers.openai);
-        queueIndicator({
-          controller,
-          status: "Reading through documents",
-          icon: "searching",
-        });
-        const chunks: Chunk[] = await searchForChunksUsingEmbedding(
-          embedding,
-          index
-        );
-        const sources: Source[] = await getSourcesFromChunks(chunks);
-        queueIndicator({
-          controller,
-          status: `Read over ${sources.length} documents`,
-          icon: "documents",
-        });
-        const citations: Citation[] = await getCitationsFromChunks(chunks);
-        const contextFromSources = await getContextFromSources(sources);
-        const systemPrompt =
-          RESPOND_TO_QUESTION_SYSTEM_PROMPT(contextFromSources);
-        queueIndicator({
-          controller,
-          status: "Coming up with an answer",
-          icon: "thinking",
-        });
-        queueAssistantResponse({
-          controller,
-          providers,
-          providerName: PROVIDER_NAME,
-          messages: stripMessagesOfCitations(
-            chat.messages.slice(-HISTORY_CONTEXT_LENGTH)
-          ),
-          model_name: MODEL_NAME,
-          systemPrompt,
-          citations,
-          error_message: DEFAULT_RESPONSE_MESSAGE,
-          temperature: QUESTION_RESPONSE_TEMPERATURE,
-        });
-      } catch (error: any) {
-        console.error("Error in respondToQuestion:", error);
-        queueError({
-          controller,
-          error_message: error.message ?? DEFAULT_RESPONSE_MESSAGE,
-        });
-        queueAssistantResponse({
-          controller,
-          providers,
-          providerName: PROVIDER_NAME,
-          messages: [],
-          model_name: MODEL_NAME,
-          systemPrompt: RESPOND_TO_QUESTION_BACKUP_SYSTEM_PROMPT(),
-          citations: [],
-          error_message: DEFAULT_RESPONSE_MESSAGE,
-          temperature: QUESTION_RESPONSE_TEMPERATURE,
-        });
-      }
-    },
-  });
-
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      "Connection": "keep-alive",
-    },
-  });
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+      },
+    });
+  }
 }
