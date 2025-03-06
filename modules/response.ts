@@ -45,6 +45,18 @@ import {
   RANDOM_RESPONSE_TEMPERATURE,
 } from "@/configuration/models";
 
+const econ425Keywords = [
+  "ECON 425", "425", "Roark", "chris", "APT", "CAPM", "Financial Economics", "market efficiency", "capital asset pricing model",
+  "CAPM", "portfolio theory", "asset pricing", "economic theory", "quantitative finance",
+  "financial markets", "equity markets", "investment theory", "risk management",
+  "capital markets", "finance", "economics", "lecture", "exam", "homework", "quiz", "study"
+];
+
+
+function containsEcon425Keywords(userInput: string): boolean {
+  const normalizedInput = userInput.toLowerCase();
+  return econ425Keywords.some(keyword => normalizedInput.includes(keyword.toLowerCase()));
+}
 /**
  * ResponseModule is responsible for collecting data and building a response
  */
@@ -155,6 +167,21 @@ export class ResponseModule {
           status: "Figuring out what your answer looks like",
           icon: "thinking",
         });
+        const userInput = chat.messages[chat.messages.length - 1].content;
+      if (!containsEcon425Keywords(userInput)) {
+        // If no relevant keywords, return a default message
+        queueIndicator({
+          controller,
+          status: "No relevant documents found",
+          icon: "error",
+        });
+
+        controller.enqueue(
+          "I'm here to answer your questions about ECON 425! It doesn't seem like your question is related to the course. Try asking me something about financial economics!"
+        );
+        controller.close();
+        return; // Stop further processing
+      }
         try {
           const hypotheticalData: string = await generateHypotheticalData(
             chat,
