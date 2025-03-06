@@ -63,7 +63,7 @@ export class ResponseModule {
       async start(controller) {
         queueIndicator({
           controller,
-          status: "Coming up with an answer",
+          status: "Coming up with an answer for you",
           icon: "thinking",
         });
         const systemPrompt = RESPOND_TO_RANDOM_MESSAGE_SYSTEM_PROMPT();
@@ -109,7 +109,7 @@ export class ResponseModule {
       async start(controller) {
         queueIndicator({
           controller,
-          status: "Coming up with an answer",
+          status: "Coming up with an answer for you",
           icon: "thinking",
         });
         const systemPrompt = RESPOND_TO_HOSTILE_MESSAGE_SYSTEM_PROMPT();
@@ -172,6 +172,15 @@ export class ResponseModule {
             index
           );
           const sources: Source[] = await getSourcesFromChunks(chunks);
+          if (!sources.length) {
+          return new Response(
+            JSON.stringify({
+              answer:
+                "I'm here to help with ECON 425! It looks like your question isn't related to the course. Try asking me something about financial economics!",
+            }),
+            { status: 200 }
+          );
+        }
           queueIndicator({
             controller,
             status: `Read over ${sources.length} documents`,
@@ -183,7 +192,7 @@ export class ResponseModule {
             RESPOND_TO_QUESTION_SYSTEM_PROMPT(contextFromSources);
           queueIndicator({
             controller,
-            status: "Coming up with an answer",
+            status: "Coming up with an answer for you",
             icon: "thinking",
           });
           queueAssistantResponse({
