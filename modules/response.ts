@@ -160,8 +160,16 @@ export class ResponseModule {
           // List of relevant keywords
           const relevantKeywords = [
             "finance", "economics", "stocks", "bonds", "investment", "ESG",
-            "portfolio", "risk", "market", "quantitative", "Fama-French",
-            "return", "capital", "analysis", "equity", "econometrics"
+    "portfolio", "risk", "market", "quantitative", "Fama-French",
+    "return", "capital", "analysis", "equity", "econometrics", "apt", 
+    "roark", "chris", "425", "econ", "capm", "risk aversion", 
+    "asset pricing", "mean-variance", "optimal portfolio", "indices", 
+    "derivatives", "trading costs", "margin accounts", "capital allocation", 
+    "asset classes", "diversification", "efficient frontier", "CAL", 
+    "multifactor models", "arbitrage pricing theory", "efficient markets hypothesis", 
+    "bond pricing", "bond yields", "term structure", "duration", 
+    "macroeconomic analysis", "fundamental analysis", "dividend discount model", 
+    "PE analysis", "project report", "final exam"
           ];
 
           // Check if the user's message contains any relevant keywords
