@@ -161,7 +161,7 @@ export class ResponseModule {
           const relevantKeywords = [
             "finance", "economics", "stocks", "bonds", "investment", "ESG",
             "portfolio", "risk", "market", "quantitative", "Fama-French",
-            "return", "capital", "analysis", "equity", "econometrics"
+            "return", "capital", "analysis", "equity", "econometrics",
     "portfolio", "risk", "market", "quantitative", "Fama-French",
     "return", "capital", "analysis", "equity", "econometrics", "apt", 
     "roark", "chris", "425", "econ", "capm", "risk aversion", 
