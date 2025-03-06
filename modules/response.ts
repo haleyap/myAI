@@ -218,6 +218,7 @@ export class ResponseModule {
             controller,
             error_message: error.message ?? DEFAULT_RESPONSE_MESSAGE,
           });
+          return;
           queueAssistantResponse({
             controller,
             providers,
