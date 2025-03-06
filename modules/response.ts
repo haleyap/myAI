@@ -45,18 +45,6 @@ import {
   RANDOM_RESPONSE_TEMPERATURE,
 } from "@/configuration/models";
 
-const econ425Keywords = [
-  "ECON 425", "425", "Roark", "chris", "APT", "CAPM", "Financial Economics", "market efficiency", "capital asset pricing model",
-  "CAPM", "portfolio theory", "asset pricing", "economic theory", "quantitative finance",
-  "financial markets", "equity markets", "investment theory", "risk management",
-  "capital markets", "finance", "economics", "lecture", "exam", "homework", "quiz", "study"
-];
-
-
-function containsEcon425Keywords(userInput: string): boolean {
-  const normalizedInput = userInput.toLowerCase();
-  return econ425Keywords.some(keyword => normalizedInput.includes(keyword.toLowerCase()));
-}
 /**
  * ResponseModule is responsible for collecting data and building a response
  */
@@ -75,7 +63,7 @@ export class ResponseModule {
       async start(controller) {
         queueIndicator({
           controller,
-          status: "Coming up with an answer for you",
+          status: "Coming up with an answer",
           icon: "thinking",
         });
         const systemPrompt = RESPOND_TO_RANDOM_MESSAGE_SYSTEM_PROMPT();
@@ -121,7 +109,7 @@ export class ResponseModule {
       async start(controller) {
         queueIndicator({
           controller,
-          status: "Coming up with an answer for you",
+          status: "Coming up with an answer",
           icon: "thinking",
         });
         const systemPrompt = RESPOND_TO_HOSTILE_MESSAGE_SYSTEM_PROMPT();
@@ -167,22 +155,38 @@ export class ResponseModule {
           status: "Figuring out what your answer looks like",
           icon: "thinking",
         });
-        const userInput = chat.messages[chat.messages.length - 1].content;
-      if (!containsEcon425Keywords(userInput)) {
-        // If no relevant keywords, return a default message
-        queueIndicator({
-          controller,
-          status: "No relevant documents found",
-          icon: "error",
-        });
 
-        controller.enqueue(
-          "I'm here to answer your questions about ECON 425! It doesn't seem like your question is related to the course. Try asking me something about financial economics!"
-        );
-        controller.close();
-        return; // Stop further processing
-      }
         try {
+          // List of relevant keywords
+          const relevantKeywords = [
+            "finance", "economics", "stocks", "bonds", "investment", "ESG",
+            "portfolio", "risk", "market", "quantitative", "Fama-French",
+            "return", "capital", "analysis", "equity", "econometrics"
+          ];
+
+          // Check if the user's message contains any relevant keywords
+          const userMessage = chat.messages.slice(-1)[0].content.toLowerCase();
+          const containsRelevantKeywords = relevantKeywords.some(keyword =>
+            userMessage.includes(keyword)
+          );
+
+          if (!containsRelevantKeywords) {
+            // If no relevant keywords are found, return the default message about ECON 425
+            queueAssistantResponse({
+              controller,
+              providers,
+              providerName: PROVIDER_NAME,
+              messages: [],
+              model_name: MODEL_NAME,
+              systemPrompt: "I'm here to help with ECON 425-related questions. Feel free to ask about topics related to finance, economics, investment, and more!",
+              citations: [],
+              error_message: "No relevant documents found.",
+              temperature: QUESTION_RESPONSE_TEMPERATURE,
+            });
+            return; // End the response here
+          }
+
+          // Proceed with generating a response if relevant keywords are found
           const hypotheticalData: string = await generateHypotheticalData(
             chat,
             providers.openai
@@ -199,19 +203,6 @@ export class ResponseModule {
             index
           );
           const sources: Source[] = await getSourcesFromChunks(chunks);
-          if (sources.length === 0) {
-  queueIndicator({
-    controller,
-    status: "No relevant documents found",
-    icon: "error",
-  });
-
-  controller.enqueue(
-    "I'm here to answer your questions about ECON 425! It doesn't seem like your question is related to the course. Try asking me something about financial economics!"
-  );
-  controller.close();
-  return; // Important to stop here if no relevant documents
-}
           queueIndicator({
             controller,
             status: `Read over ${sources.length} documents`,
@@ -223,7 +214,7 @@ export class ResponseModule {
             RESPOND_TO_QUESTION_SYSTEM_PROMPT(contextFromSources);
           queueIndicator({
             controller,
-            status: "Coming up with an answer for you",
+            status: "Coming up with an answer",
             icon: "thinking",
           });
           queueAssistantResponse({
@@ -245,7 +236,6 @@ export class ResponseModule {
             controller,
             error_message: error.message ?? DEFAULT_RESPONSE_MESSAGE,
           });
-          return;
           queueAssistantResponse({
             controller,
             providers,
@@ -265,7 +255,7 @@ export class ResponseModule {
       headers: {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
-        Connection: "keep-alive",
+        "Connection": "keep-alive",
       },
     });
   }
